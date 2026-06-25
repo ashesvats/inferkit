@@ -1,0 +1,24 @@
+library;
+
+export 'src/agent/agent.dart';
+export 'src/agent/agent_event.dart';
+export 'src/agent/agent_options.dart';
+export 'src/agent/tool_registry.dart';
+export 'src/chat/chat_resource.dart';
+export 'src/chat/choice.dart';
+export 'src/chat/completion_request.dart';
+export 'src/chat/completion_response.dart';
+export 'src/chat/completion_stream.dart';
+export 'src/chat/content_part.dart';
+export 'src/chat/message.dart';
+export 'src/chat/phase.dart';
+export 'src/chat/reasoning_config.dart';
+export 'src/chat/tool.dart';
+export 'src/chat/tool_call.dart';
+export 'src/chat/usage.dart';
+export 'src/client.dart';
+export 'src/core/client_config.dart';
+export 'src/core/exceptions.dart';
+export 'src/core/http_transport.dart';
+export 'src/core/semaphore.dart';
+export 'src/models/models_resource.dart';

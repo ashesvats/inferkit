@@ -1,0 +1,22 @@
+name: inferkit
+description: Pure-Dart OpenAI-compatible inference client for local and hosted LLM servers.
+version: 0.1.0
+repository: https://github.com/ashesvats/inferkit
+issue_tracker: https://github.com/ashesvats/inferkit/issues
+topics:
+  - ai
+  - llm
+  - openai
+  - inference
+  - agents
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  async: ^2.11.0
+  http: ^1.2.2
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.8
