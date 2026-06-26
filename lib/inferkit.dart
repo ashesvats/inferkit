@@ -11,6 +11,7 @@ export 'src/chat/completion_response.dart';
 export 'src/chat/completion_stream.dart';
 export 'src/chat/content_part.dart';
 export 'src/chat/message.dart';
+export 'src/chat/model_profile.dart';
 export 'src/chat/phase.dart';
 export 'src/chat/reasoning_config.dart';
 export 'src/chat/tool.dart';

@@ -1,4 +1,5 @@
 import 'message.dart';
+import 'model_profile.dart';
 import 'tool.dart';
 
 class ChatCompletionRequest {
@@ -9,6 +10,7 @@ class ChatCompletionRequest {
     this.toolChoice,
     this.temperature,
     this.includeUsage = true,
+    this.thinking = ThinkingMode.profileDefault,
   });
 
   final String model;
@@ -17,6 +19,7 @@ class ChatCompletionRequest {
   final ToolChoice? toolChoice;
   final double? temperature;
   final bool includeUsage;
+  final ThinkingMode thinking;
 
   Map<String, dynamic> toJson({required bool stream}) => {
     'model': model,

@@ -1,4 +1,7 @@
 import 'chat/chat_resource.dart';
+import 'chat/completion_request.dart';
+import 'chat/model_profile.dart';
+import 'chat/request_behavior_resolver.dart';
 import 'core/client_config.dart';
 import 'core/http_transport.dart';
 import 'models/models_resource.dart';
@@ -32,6 +35,12 @@ class InferKitClient {
     if (config.apiKey.trim().isNotEmpty)
       'Authorization': 'Bearer ${config.apiKey.trim()}',
   };
+
+  ModelDescriptor describeModel(String modelId) =>
+      describeModelBehavior(config, modelId);
+
+  RequestDescriptor describeRequest(ChatCompletionRequest request) =>
+      describeRequestBehavior(config, request).descriptor;
 
   void dispose() {
     if (_ownsTransport) transport.close();

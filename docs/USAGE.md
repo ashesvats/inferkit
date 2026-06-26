@@ -1,35 +1,8 @@
-# InferKit
+# InferKit Usage
 
-InferKit is a pure-Dart client for OpenAI-compatible inference servers. It is
-designed for local and hosted LLM runtimes such as llama.cpp, vLLM, LM Studio,
-Ollama-compatible gateways, and OpenAI-compatible cloud endpoints.
-
-Documentation lives in [docs/INDEX.md](docs/INDEX.md). The end-user guide is
-[docs/USAGE.md](docs/USAGE.md).
-
-The package has two layers:
-
-- A thin protocol client for `/v1/chat/completions` and `/v1/models`.
-- An optional Agent helper that runs recursive tool-call loops for you.
-
-InferKit has no Flutter dependency, so it can be used from Dart CLIs, servers,
-tests, Flutter apps, and other Dart packages.
-
-## Features
-
-- OpenAI-compatible chat completions.
-- Non-streaming and streaming responses.
-- Typed chat messages, multimodal content parts, tools, tool choices, usage,
-  and tool calls.
-- Reasoning extraction from structured fields such as `reasoning_content` and
-  inline tags such as `<think>...</think>`.
-- Stream phase tracking for reasoning, answering, tool calling, done, and
-  failed states.
-- Tolerant parsing for local servers that omit fields commonly present in the
-  OpenAI cloud API.
-- Optional Agent layer with recursive tool execution, parallel tool calls,
-  tool lifecycle events, and a concurrency limiter.
-- Injectable HTTP transport for tests.
+InferKit is a pure-Dart client for OpenAI-compatible inference servers. It
+works with local runtimes and hosted endpoints that expose
+`/v1/chat/completions` and `/v1/models`.
 
 ## Install
 
@@ -37,17 +10,21 @@ tests, Flutter apps, and other Dart packages.
 dart pub add inferkit
 ```
 
-For Flutter projects:
+For Flutter apps:
 
 ```bash
 flutter pub add inferkit
 ```
 
-## Create a Client
+## Import
 
 ```dart
 import 'package:inferkit/inferkit.dart';
+```
 
+## Create A Client
+
+```dart
 final client = InferKitClient(
   config: const ClientConfig(
     baseUrl: 'http://localhost:8080/v1',
@@ -56,8 +33,14 @@ final client = InferKitClient(
 );
 ```
 
-`baseUrl` is required. InferKit appends `/v1` when it is missing, and it sends
-an `Authorization` header only when `apiKey` is not empty.
+`baseUrl` is required. InferKit normalizes it to the `/v1` API root and only
+sends an `Authorization` header when `apiKey` is non-empty.
+
+Dispose the client when you are done if it owns its own HTTP transport:
+
+```dart
+client.dispose();
+```
 
 ## Non-Streaming Chat
 
@@ -67,7 +50,7 @@ final response = await client.chat.completions.create(
     model: 'local-model',
     messages: [
       ChatMessage.system('You are concise.'),
-      ChatMessage.user('Write a one sentence summary of Dart streams.'),
+      ChatMessage.user('Write a one-sentence summary of Dart streams.'),
     ],
     temperature: 0.2,
   ),
@@ -91,7 +74,6 @@ final stream = client.chat.completions.createStream(
 await for (final event in stream) {
   switch (event) {
     case ReasoningEvent():
-      // Reasoning is surfaced separately from visible answer text.
       break;
     case ContentDeltaEvent():
       stdout.write(event.text);
@@ -103,9 +85,10 @@ await for (final event in stream) {
 }
 ```
 
-Add `import 'dart:io';` when using `stdout`.
+## Stream Phase Tracking
 
-## Track Stream Phase
+Use `trackPhase()` when you want the stream to surface phase changes alongside
+the raw events.
 
 ```dart
 final tracked = client.chat.completions
@@ -128,10 +111,14 @@ await for (final event in tracked.events) {
 }
 ```
 
+`Phase` values include `idle`, `reasoning`, `answering`, `toolCalling`,
+`done`, and `failed`.
+
 ## Reasoning Configuration
 
-By default, InferKit extracts reasoning from common local-server fields and
-from inline `<think>...</think>` tags:
+By default, InferKit extracts reasoning from common structured fields such as
+`reasoning_content`, `reasoning`, `thinking`, and `reasoning_summary`, plus
+inline `<think>...</think>` tags.
 
 ```dart
 final client = InferKitClient(
@@ -142,7 +129,8 @@ final client = InferKitClient(
 );
 ```
 
-Disable extraction when you want content to pass through unchanged:
+Disable reasoning extraction when you want the response content to pass through
+unchanged:
 
 ```dart
 final client = InferKitClient(
@@ -153,10 +141,32 @@ final client = InferKitClient(
 );
 ```
 
+You can also customize the field names or inline tag pair with
+`ReasoningConfig(...)` and `ReasoningTagConfig`.
+
+## Multimodal Content Parts
+
+`ChatMessage.user(...)` accepts either a plain string or a list of
+`ContentPart`s.
+
+```dart
+final message = ChatMessage.user([
+  const TextPart('Describe this image briefly:'),
+  const ImagePart.dataUrl(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+  ),
+]);
+```
+
+`TextPart`, `ImagePart`, and `AudioPart` are available for multimodal requests.
+`ImagePart.file(...)` and `AudioPart.file(...)` can build base64 payloads from
+local files when you have `dart:io` available.
+
 ## Tool Calls Without Agent
 
-The protocol client exposes tool calls but does not execute them. You can run
-tools in your application and feed results back to the next request:
+The protocol client exposes tool calls, but it does not execute them for you.
+You can send tools, inspect the returned tool calls, run your own code, and
+feed results back in the next request.
 
 ```dart
 final tools = [
@@ -198,9 +208,13 @@ final finalResponse = await client.chat.completions.create(
 print(finalResponse.text);
 ```
 
+`ToolChoice.auto`, `ToolChoice.none`, `ToolChoice.required`, and
+`ToolChoice.function('name')` are all available.
+
 ## Agent Helper
 
-Use `Agent` when you want InferKit to own the recursive tool-call loop:
+Use `Agent` when you want InferKit to manage the recursive tool-call loop for
+you.
 
 ```dart
 final agent = Agent(
@@ -240,6 +254,9 @@ await for (final event in agent.run(
 }
 ```
 
+`Agent` emits phase updates, reasoning deltas, tool lifecycle events, the final
+answer, and terminal `AgentDone` / `AgentFailed` events.
+
 ## List Models
 
 ```dart
@@ -249,8 +266,9 @@ for (final model in models.data) {
 }
 ```
 
-## Scope
+## Common Notes
 
-InferKit currently focuses on OpenAI-compatible chat completions, streaming,
-models, reasoning extraction, and agent tool orchestration. Embeddings and
-provider-native APIs are intentionally deferred.
+- Streaming events are collected with `collect()` when you need a final
+  `ChatCompletionResponse` from a stream.
+- The client accepts an injectable HTTP transport, which is useful for tests
+  and custom runtime wiring.

@@ -1,3 +1,4 @@
+import '../chat/model_profile.dart';
 import '../chat/reasoning_config.dart';
 import 'http_transport.dart';
 
@@ -8,6 +9,7 @@ class ClientConfig {
     this.timeout = const Duration(minutes: 10),
     this.headers = const {},
     this.reasoning = ReasoningConfig.defaults,
+    this.modelProfiles = const [],
     this.transport,
   });
 
@@ -16,5 +18,6 @@ class ClientConfig {
   final Duration timeout;
   final Map<String, String> headers;
   final ReasoningConfig reasoning;
+  final List<ModelProfileBinding> modelProfiles;
   final HttpTransport? transport;
 }

@@ -7,6 +7,7 @@ import '../core/json_utils.dart';
 import 'completion_request.dart';
 import 'completion_response.dart';
 import 'completion_stream.dart';
+import 'request_behavior_resolver.dart';
 
 class ChatCompletionsResource {
   const ChatCompletionsResource(this._client);
@@ -14,21 +15,23 @@ class ChatCompletionsResource {
   final InferKitClient _client;
 
   Future<ChatCompletionResponse> create(ChatCompletionRequest request) async {
-    final response = await _send(request, stream: false);
+    final behavior = describeRequestBehavior(_client.config, request);
+    final response = await _send(request, behavior: behavior, stream: false);
     final body = await _readBody(response, 'chat');
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throwHttpFailure(response.statusCode, body, 'Chat request failed');
     }
     return ChatCompletionResponse.fromJson(
       decodeJsonObject(body),
-      reasoning: _client.config.reasoning,
+      reasoning: behavior.reasoning,
     );
   }
 
   Stream<ChatCompletionStreamEvent> createStream(
     ChatCompletionRequest request,
   ) async* {
-    final response = await _send(request, stream: true);
+    final behavior = describeRequestBehavior(_client.config, request);
+    final response = await _send(request, behavior: behavior, stream: true);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final body = await _readBody(response, 'chat');
       throwHttpFailure(response.statusCode, body, 'Chat request failed');
@@ -36,7 +39,7 @@ class ChatCompletionsResource {
     try {
       yield* parseChatCompletionStream(
         response.bodyStream,
-        reasoning: _client.config.reasoning,
+        reasoning: behavior.reasoning,
         timeout: _client.config.timeout,
       );
     } on TimeoutException {
@@ -50,6 +53,7 @@ class ChatCompletionsResource {
 
   Future<HttpTransportResponse> _send(
     ChatCompletionRequest request, {
+    required ResolvedRequestBehavior behavior,
     required bool stream,
   }) async {
     try {
@@ -58,7 +62,7 @@ class ChatCompletionsResource {
           method: 'POST',
           uri: _client.endpoint('/chat/completions'),
           headers: _client.headers(),
-          body: request.toJson(stream: stream),
+          body: behavior.toJson(request, stream: stream),
           timeout: _client.config.timeout,
         ),
       );
